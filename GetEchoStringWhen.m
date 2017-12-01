@@ -1,4 +1,4 @@
-function [string, when] = GetEchoStringWhen(windowPtr, msg, x, y, textColor, bgColor, useKbCheck, varargin)
+function [string, when] = GetEchoStringWhen(windowPtr, msg, x, y, textColor, bgColor, useKbCheck, inputType, varargin)
 % string = GetEchoString(window, msg, x, y, [textColor], [bgColor], [useKbCheck=0], [deviceIndex], [untilTime=inf], [KbCheck args...])
 % 
 % Get a string typed at the keyboard. Entry is terminated by <return> or
@@ -23,6 +23,8 @@ function [string, when] = GetEchoStringWhen(windowPtr, msg, x, y, textColor, bgC
 % work with non-US keyboard mappings. Its advantage is that it works
 % reliably on configurations where GetChar may fail, e.g., on MS-Vista and
 % Windows-7.
+% 
+% 'inputType' is 1 for number keys and enter (no decimal) and 2 for all keys
 %
 % See also: GetNumber, GetString, GetEchoNumber
 %
@@ -48,6 +50,8 @@ function [string, when] = GetEchoStringWhen(windowPtr, msg, x, y, textColor, bgC
 % 11/20/17  bt        Have now eliminated LogEvents. Added info to register
 %                     Return and Backspace. Dropped Alpha blending changes
 %                     to keep fonts looking clean.
+% 12/01/17  bt        Added input argument and switch phrasing to allow
+%                     different types of input.
 
 global cfg %Events nbevents taskTimeStamp 
 
@@ -80,6 +84,13 @@ if ~useKbCheck
     FlushEvents;
 end
 
+switch inputType
+    case 1
+       keys_allowed = cfg.enabledNumberKeys;
+    case 2
+       keys_allowed = [];
+end
+
 string = '';
 output = [msg, ' ', string];
 
@@ -90,7 +101,7 @@ Screen('Flip', windowPtr, 0, 1);
 
 while true
     if useKbCheck
-        RestrictKeysForKbCheck(cfg.enabledNumberKeys); % limit recognized presses to 1-10, return, keypad 1-10, keypad Enter
+        RestrictKeysForKbCheck(keys_allowed); % limit recognized presses to 1-10, return, keypad 1-10, keypad Enter
         [char, when] = GetKbChar(varargin{:});
     else
 %         while(1)
@@ -100,7 +111,7 @@ while true
             if ismember(chCode,cfg.limitedKeys) % char == 10 %return is 10 or 13
                 %terminate
                 break
-            elseif ismember(chCode,cfg.enabledNumberKeys) %check if the char is a number 1-9
+            elseif ismember(chCode,keys_allowed) %check if the char is a number 1-9
 %                 char=[char ch];
                 char=ch;
                 pause(0.1) %delay 100ms to debounce and ensure that we don't count the same character multiple times
